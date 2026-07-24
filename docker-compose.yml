@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # 📥 Redis Caching Service
+  redis:
+    image: redis:alpine
+    container_name: payment_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - payment_network
+
+  # 🧠 AI Microservice
+  gen-ai:
+    build: ./gen-ai
+    container_name: payment_gen_ai
+    ports:
+      - "5000:5000"
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    networks:
+      - payment_network
+
+  # ⚙️ Core Payment Backend API
+  backend:
+    build: ./backend
+    container_name: payment_backend
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGO_URI=${MONGO_URI}
+      - JWT_SECRET=${JWT_SECRET}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - REDIS_URL=redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - payment_network
+
+  # 💻 React Frontend UI
+  frontend:
+    build: ./frontend
+    container_name: payment_frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - gen-ai
+    networks:
+      - payment_network
+
+# 🌐 Virtual bridge network for container-to-container communication
+networks:
+  payment_network:
+    driver: bridge

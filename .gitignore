@@ -1,0 +1,20 @@
+# Dependency directories (ignore all node_modules folders recursively)
+**/node_modules/
+node_modules/
+
+# Environment variables (ignore secret files)
+.env
+.env.*
+.env.local
+!.env.example
+
+# Build outputs
+**/dist/
+dist/
+build/
+
+# OS/IDE files
+.DS_Store
+.idea/
+.vscode/
+*.log
