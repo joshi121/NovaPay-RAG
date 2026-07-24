@@ -38,7 +38,13 @@ async function createTransaction(req, res) {
         })
     }
 
-    // Resolve Email input for toAccount
+    const fromUserAccount = await accountModel.findOne({ _id: fromAccount }).populate("user");
+    if (!fromUserAccount) {
+        console.log("❌ FAILED AT STEP 1: Invalid sender account ID");
+        return res.status(400).json({ message: "Invalid sender account ID" });
+    }
+
+    // Resolve Email input for toAccount with intelligent currency matching
     if (toAccount.includes("@")) {
         console.log(`-> Resolving recipient email: ${toAccount}`);
         const recipientUser = await User.findOne({ email: toAccount.toLowerCase().trim() });
@@ -49,8 +55,21 @@ async function createTransaction(req, res) {
             });
         }
         
-        // Find their active account
-        const recipientAccount = await accountModel.findOne({ user: recipientUser._id, status: "ACTIVE" });
+        // Try to match recipient account with the SAME CURRENCY as sender first
+        let recipientAccount = await accountModel.findOne({ 
+            user: recipientUser._id, 
+            currency: fromUserAccount.currency,
+            status: "ACTIVE" 
+        });
+
+        // Fallback to any active account if no same-currency account exists
+        if (!recipientAccount) {
+            recipientAccount = await accountModel.findOne({ 
+                user: recipientUser._id, 
+                status: "ACTIVE" 
+            });
+        }
+
         if (!recipientAccount) {
             console.log("❌ FAILED AT STEP 1: Recipient has no active accounts");
             return res.status(400).json({
@@ -58,11 +77,10 @@ async function createTransaction(req, res) {
             });
         }
 
-        console.log(`-> Resolved email ${toAccount} to Account ID: ${recipientAccount._id}`);
+        console.log(`-> Resolved email ${toAccount} to Account ID: ${recipientAccount._id} (Currency: ${recipientAccount.currency})`);
         toAccount = recipientAccount._id.toString();
     }
 
-    const fromUserAccount = await accountModel.findOne({ _id: fromAccount }).populate("user");
     const toUserAccount = await accountModel.findOne({ _id: toAccount }).populate("user");
 
     console.log("-> Sender Account found:", fromUserAccount ? fromUserAccount._id : "NOT FOUND");
@@ -126,6 +144,22 @@ async function createTransaction(req, res) {
         })
     }
 
+    // MULTI-CURRENCY CONVERSION MATH (1 USD = 83 INR)
+    const EXCHANGE_RATE_USD_TO_INR = 83.0;
+    let creditAmount = Number(amount);
+    const fromCurr = (fromUserAccount.currency || "INR").toUpperCase();
+    const toCurr = (toUserAccount.currency || "INR").toUpperCase();
+
+    if (fromCurr !== toCurr) {
+        if (fromCurr === "USD" && toCurr === "INR") {
+            creditAmount = Number((amount * EXCHANGE_RATE_USD_TO_INR).toFixed(2));
+            console.log(`💱 [CURRENCY CONVERSION] $${amount} USD -> ₹${creditAmount} INR (Rate: ${EXCHANGE_RATE_USD_TO_INR})`);
+        } else if (fromCurr === "INR" && toCurr === "USD") {
+            creditAmount = Number((amount / EXCHANGE_RATE_USD_TO_INR).toFixed(2));
+            console.log(`💱 [CURRENCY CONVERSION] ₹${amount} INR -> $${creditAmount} USD (Rate: ${(1 / EXCHANGE_RATE_USD_TO_INR).toFixed(4)})`);
+        }
+    }
+
     let transaction;
     const session = await mongoose.startSession()
     try {
@@ -150,17 +184,14 @@ async function createTransaction(req, res) {
 
         const creditLedgerEntry = new ledgerModel({
             account: toAccount,
-            amount: amount,
+            amount: creditAmount, // Uses converted currency amount!
             transaction: transaction._id,
             type: "CREDIT"
         })
         await creditLedgerEntry.save({ session })
 
-        await transactionModel.findOneAndUpdate(
-            { _id: transaction._id },
-            { status: "COMPLETED" },
-            { session }
-        )
+        transaction.status = "COMPLETED";
+        await transaction.save({ session });
 
         await session.commitTransaction()
         session.endSession()

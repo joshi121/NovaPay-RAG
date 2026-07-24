@@ -2,10 +2,13 @@ import nodemailer from 'nodemailer';
 
 // UPDATED: Changed from OAuth2 to standard App Password authentication
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false,
+    family: 4, // Force IPv4 resolution on Render instances
     auth: {
         user: process.env.EMAIL_USER || process.env.SMTP_USER,
-        pass: process.env.EMAIL_PASS || process.env.SMTP_PASS, // Support both variable naming styles
+        pass: process.env.EMAIL_PASS || process.env.SMTP_PASS,
     },
 });
 
