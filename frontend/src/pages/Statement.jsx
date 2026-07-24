@@ -11,6 +11,9 @@ const Statement = () => {
   const [statement, setStatement] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  const [userAccounts, setUserAccounts] = useState([]);
+  const [selectedAccountId, setSelectedAccountId] = useState('all');
+
   const fetchStatement = async (filter, viewType) => {
     setLoading(true);
     try {
@@ -24,8 +27,23 @@ const Statement = () => {
   };
 
   useEffect(() => {
+    const loadAccounts = async () => {
+      try {
+        const res = await api.get('/api/payment/accounts/');
+        setUserAccounts(res.data.accounts || []);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    loadAccounts();
     fetchStatement(timeframe, view);
   }, [timeframe, view]);
+
+  const filteredStatement = statement.filter((entry) => {
+    if (selectedAccountId === 'all') return true;
+    const entryAccId = typeof entry.account === 'object' ? entry.account?._id : entry.account;
+    return entryAccId === selectedAccountId;
+  });
 
   return (
     <div className="min-h-screen pb-16">
@@ -118,6 +136,25 @@ const Statement = () => {
                 All Time
               </button>
             </div>
+
+            {/* Account Selector Dropdown (Only shown if multiple accounts exist) */}
+            {userAccounts.length > 1 && (
+              <div className="flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-cyan-500/30">
+                <CreditCard className="w-4 h-4 text-cyan-400 ml-2" />
+                <select
+                  value={selectedAccountId}
+                  onChange={(e) => setSelectedAccountId(e.target.value)}
+                  className="bg-transparent border-none text-slate-200 text-xs font-semibold focus:ring-0 pr-2 cursor-pointer"
+                >
+                  <option value="all" className="bg-slate-900 text-white">All Accounts ({userAccounts.length})</option>
+                  {userAccounts.map((acc) => (
+                    <option key={acc._id} value={acc._id} className="bg-slate-900 text-white">
+                      {acc.name || `${acc.currency || 'INR'} Wallet`} ({acc.currency}) - ...{acc._id.slice(-6)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
           </div>
         </div>
 
@@ -128,11 +165,11 @@ const Statement = () => {
               <RefreshCw className="w-8 h-8 animate-spin text-cyan-400" />
               <span>Fetching Ledger Statement...</span>
             </div>
-          ) : statement.length === 0 ? (
+          ) : filteredStatement.length === 0 ? (
             <div className="p-12 text-center text-slate-400">
               <FileText className="w-12 h-12 text-slate-600 mx-auto mb-3" />
               <h3 className="text-lg font-bold text-white mb-1">No Ledger Entries Found</h3>
-              <p className="text-sm">There are no transactions recorded for the selected timeframe ({timeframe}).</p>
+              <p className="text-sm">There are no transactions recorded for the selected filter.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -140,13 +177,13 @@ const Statement = () => {
                 <thead>
                   <tr className="bg-slate-900/90 border-b border-slate-800 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
                     <th className="py-4 px-6">Type & Date</th>
-                    <th className="py-4 px-6">My Account ID</th>
+                    <th className="py-4 px-6">Account Name & ID</th>
                     <th className="py-4 px-6">Counterparty Details (User & Mongo ID)</th>
                     <th className="py-4 px-6">Amount</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 text-sm">
-                  {statement.map((entry) => {
+                  {filteredStatement.map((entry) => {
                     const isCredit = entry.type === 'CREDIT';
                     const rawDate = entry.createdAt || entry.transaction?.createdAt;
                     const dateStr = rawDate ? new Date(rawDate).toLocaleString() : 'Recent';
@@ -182,11 +219,16 @@ const Statement = () => {
                           </div>
                         </td>
 
-                        {/* My Account ID */}
+                        {/* My Account ID & Name */}
                         <td className="py-4 px-6 font-mono text-xs text-slate-300">
-                          <div className="flex items-center gap-1.5">
-                            <CreditCard className="w-3.5 h-3.5 text-cyan-400" />
-                            <span>{entry.account?._id || 'N/A'}</span>
+                          <div className="flex flex-col gap-0.5">
+                            <span className="font-bold text-white text-xs font-sans">
+                              {entry.account?.name || `${entry.account?.currency || 'INR'} Wallet`}
+                            </span>
+                            <div className="flex items-center gap-1.5 text-slate-400">
+                              <CreditCard className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>{entry.account?._id || entry.account}</span>
+                            </div>
                           </div>
                         </td>
 

@@ -172,7 +172,7 @@ const Transfer = () => {
                   </div>
                 ) : userAccounts.length === 1 ? (
                   <div className="bg-slate-900/90 p-3 rounded-xl border border-slate-800 flex items-center justify-between text-sm">
-                    <span className="text-slate-400 text-xs uppercase font-semibold">Selected Account</span>
+                    <span className="text-slate-200 text-xs font-bold">{userAccounts[0].name || `${userAccounts[0].currency || 'INR'} Wallet`}</span>
                     <code className="text-cyan-400 font-mono text-xs">{fromAccount}</code>
                   </div>
                 ) : (
@@ -183,7 +183,7 @@ const Transfer = () => {
                   >
                     {userAccounts.map((acc) => (
                       <option key={acc._id} value={acc._id}>
-                        {acc._id} ({acc.currency || 'INR'})
+                        {acc.name || `${acc.currency || 'INR'} Wallet`} ({acc.currency}) - {acc._id}
                       </option>
                     ))}
                   </select>

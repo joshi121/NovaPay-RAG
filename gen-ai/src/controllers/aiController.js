@@ -49,12 +49,12 @@ export const handleAiChat = async (req, res) => {
       );
 
       const capLabel = (marketCap || 'all').toUpperCase();
-      const stockContextPrompt = `Task: Personalized Stock Investment Advice.
-User Profile:
-- Current Bank Balance: ₹${userBalance || 0}
+      const stockContextPrompt = `Task: Personalized Stock Investment & Multi-Account Portfolio Advice.
+User Financial Profile (Holistic Overview across All Accounts):
+- Total Combined Bank Balance: ₹${userBalance || 0}
 - Average Transaction Outflow: ₹${avgSpend}
 
-Compare these ${capLabel} cap tickers and recommend the single strongest stock based on Volume Ratio and price gains. If no ticker has a Volume Ratio > 1.5, identify the best relative performer. Reconcile this with the user's financial profile: if their balance is low compared to the stock price, suggest cheaper stock recommendations or fractional allocation, and advise caution to protect their cash reserves. Keep it extremely short.
+Compare these ${capLabel} cap tickers and recommend the single strongest stock based on Volume Ratio and price gains. If no ticker has a Volume Ratio > 1.5, identify the best relative performer. Reconcile this with the user's total combined portfolio: if their total balance across all accounts is low compared to the stock price, suggest cheaper stock recommendations or fractional allocation, and advise caution to protect their overall liquidity. Keep the advice concise, actionable, and holistic.
 Current Ticker Quotes:\n${stockContextLines.join('\n')}`;
 
       // Append stock data prompt as the final query message

@@ -9,6 +9,7 @@ const Accounts = () => {
   const [loadingBalances, setLoadingBalances] = useState({}); // { accountId: boolean }
   const [loadingAccounts, setLoadingAccounts] = useState(true);
   const [currency, setCurrency] = useState('INR');
+  const [accountName, setAccountName] = useState('');
   const [creating, setCreating] = useState(false);
   const [copiedId, setCopiedId] = useState(null);
   const [message, setMessage] = useState(null);
@@ -34,8 +35,9 @@ const Accounts = () => {
     setCreating(true);
     setMessage(null);
     try {
-      const res = await api.post('/api/payment/accounts/', { currency });
+      const res = await api.post('/api/payment/accounts/', { currency, name: accountName });
       setMessage({ type: 'success', text: res.data.message || 'Account created!' });
+      setAccountName('');
       fetchAccounts();
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Creation failed' });
@@ -84,7 +86,14 @@ const Accounts = () => {
             <p className="text-slate-400 text-sm mt-1">Manage user accounts and check real-time balances on-demand</p>
           </div>
 
-          <form onSubmit={handleCreateAccount} className="flex items-center gap-3 glass-panel p-2 rounded-2xl">
+          <form onSubmit={handleCreateAccount} className="flex flex-col sm:flex-row items-center gap-3 glass-panel p-2 rounded-2xl">
+            <input
+              type="text"
+              placeholder="Account Name (e.g. Primary Savings)"
+              value={accountName}
+              onChange={(e) => setAccountName(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-slate-200 text-sm rounded-xl px-3 py-2 focus:ring-2 focus:ring-cyan-500/50 w-full sm:w-56"
+            />
             <select
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
@@ -98,7 +107,7 @@ const Accounts = () => {
             <button
               type="submit"
               disabled={creating}
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-white font-semibold text-sm shadow-md shadow-cyan-500/20 flex items-center gap-2 transition-all cursor-pointer disabled:opacity-50 whitespace-nowrap"
             >
               {creating ? (
                 <RefreshCw className="w-4 h-4 animate-spin" />
@@ -153,6 +162,12 @@ const Accounts = () => {
                 >
                   {/* Decorative background glow */}
                   <div className="absolute -top-12 -right-12 w-32 h-32 bg-cyan-500/10 rounded-full blur-2xl group-hover:bg-cyan-500/20 transition-all" />
+
+                  <div className="mb-3">
+                    <h3 className="text-lg font-bold text-white tracking-tight truncate">
+                      {acc.name || `${acc.currency || 'INR'} Wallet`}
+                    </h3>
+                  </div>
 
                   <div className="flex items-center justify-between mb-4">
                     <span className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">

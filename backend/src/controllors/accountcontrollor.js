@@ -12,7 +12,9 @@ export const registerAccount = async (req, res)=>{
         //     });
         // }
         // 1. Fixed: Added await and assigned to 'account' variable
-        const account = await accountModel.create({ user: user._id  , currency: req.body.currency || "INR"});
+        const currency = req.body.currency || "INR";
+        const name = req.body.name?.trim() || `${currency} Savings Wallet`;
+        const account = await accountModel.create({ user: user._id, name, currency });
 
         return res.status(201).json({
             message: "Account created successfully",

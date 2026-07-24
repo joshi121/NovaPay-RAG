@@ -16,6 +16,11 @@ const accountSchema =new mongoose.Schema({
         default: "ACTIVE"
 
     },
+    name: {
+        type: String,
+        trim: true,
+        default: "Primary Wallet"
+    },
     currency:{
         type: String,
         required: [ true, "Currency is required for creating an account" ],
