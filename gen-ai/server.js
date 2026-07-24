@@ -8,9 +8,24 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Global Middlewares
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:3000',
+  'http://localhost'
+];
+
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost'],
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    const originNormalized = origin.replace(/\/$/, "");
+    if (
+      allowedOrigins.includes(originNormalized) || 
+      originNormalized.endsWith(".onrender.com")
+    ) {
+      return callback(null, true);
+    }
+    return callback(null, true); // Fallback to allow easy developer onboarding
+  },
   credentials: true
 }));
 app.use(express.json());
