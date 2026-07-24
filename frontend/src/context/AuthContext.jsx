@@ -37,6 +37,9 @@ export const AuthProvider = ({ children }) => {
       const userData = { id: res.data.id, name: res.data.name, email: res.data.email };
       setUser(userData);
       localStorage.setItem('payment_user', JSON.stringify(userData));
+      if (res.data.token) {
+        localStorage.setItem('payment_token', res.data.token);
+      }
       return { success: true, message: res.data.message };
     } catch (err) {
       const msg = err.response?.data?.message || 'Login failed';
@@ -56,6 +59,7 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setUser(null);
       localStorage.removeItem('payment_user');
+      localStorage.removeItem('payment_token');
       setLoading(false);
     }
   };
